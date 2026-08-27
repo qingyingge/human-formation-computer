@@ -34,7 +34,7 @@ controls.dampingFactor = 0.05;
 // 动画
 function animate() {
   requestAnimationFrame(animate);
-  soldierArray.rotation.y += 0.002;
+  // soldierArray.rotation.y += 0.002;
   controls.update();
   renderer.render(scene, camera);
 }
