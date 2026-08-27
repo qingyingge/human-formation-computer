@@ -43,6 +43,11 @@ function createSoldierGeometry() {
   chestArmor.translate(0, 0.75, 0.20);
   parts.push(chestArmor);
 
+  // === 背甲（后面） ===
+  const backArmor = new THREE.BoxGeometry(0.36, 0.28, 0.06);
+  backArmor.translate(0, 0.75, -0.20);
+  parts.push(backArmor);
+
   // === 腰带 ===
   const belt = new THREE.BoxGeometry(0.46, 0.08, 0.40);
   belt.translate(0, 0.45, 0);
