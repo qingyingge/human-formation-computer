@@ -139,11 +139,11 @@ export function createSoldierArray() {
       dummy.updateMatrix();
       bodies.setMatrixAt(idx, dummy.matrix);
 
-      dummy.position.set(x + 0.30, 1.20, z);
+      dummy.position.set(x + 0.32, 0.77, z + 0.08);
       dummy.updateMatrix();
       poles.setMatrixAt(idx, dummy.matrix);
 
-      dummy.position.set(x + 0.30, 1.50, z);
+      dummy.position.set(x + 0.32, 1.02, z + 0.08);
       dummy.updateMatrix();
       flags.setMatrixAt(idx, dummy.matrix);
     }
