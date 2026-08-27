@@ -1,49 +1,41 @@
 # Human-Formation Computer · 人列计算机
 
-一个基于 Three.js 的可视化仿真项目，模拟古代"人列计算机"的概念。通过三维动画展示由多个计算单元组成的阵列，每个单元代表一个"士兵"，共同构成一个分布式计算系统。
+Three.js 版本: r152 | 构建工具: Vite 4.x | 状态: 基建中
 
-## 项目特点
+## 项目背景
 
-- 基于 Three.js 的实时 3D 渲染
-- 极简 Low-Poly 风格的青铜小人设计
-- 支持鼠标拖拽和缩放交互
-- 使用 Vite 作为构建工具，支持快速开发
+本项目基于刘慈欣《三体》中“人列计算机”的设定，利用 Three.js 在浏览器中构建该计算机的数字孪生原型。
+
+核心目标并非实现真实的数值计算，而是通过三维可视化，严谨复刻人列计算机的体系结构，包括中央处理器（CPU）、内存阵列、总线传输及时钟同步机制等。项目定位为计算机组成原理的可视化辅助教材。
 
 ## 快速开始
 
 ```bash
-# 安装依赖
 pnpm install
-
-# 启动开发服务器
 pnpm run dev
-
-# 构建生产版本
-pnpm run build
-
-# 预览生产构建
-pnpm run preview
 ```
 
-## 项目结构
+浏览器访问 `http://localhost:5173` 即可查看当前进展。
+
+## 目录结构
 
 ```
 human-formation-computer/
+├── public/
 ├── src/
-│   ├── main.js                # 应用入口
-│   ├── core/                  # 核心引擎模块
-│   │   ├── SceneManager.js    # 场景、相机、渲染器管理
-│   │   └── Controls.js        # OrbitControls 封装
-│   ├── entities/              # 实体定义
-│   │   └── FormationUnit.js   # 计算单元生成函数
-│   └── styles/                # 样式文件
-├── public/                    # 静态资源
-├── index.html                 # 根 HTML 模板
-└── package.json               # 项目配置
+│   ├── main.js
+│   ├── core/
+│   │   ├── SceneManager.js
+│   │   └── Controls.js
+│   ├── entities/
+│   │   └── FormationUnit.js
+│   ├── systems/
+│   └── styles/
+├── index.html
+├── AGENTS.md
+└── README.md
 ```
 
-## 技术栈
+## 灵感来源
 
-- Three.js - 3D 图形库
-- Vite - 现代前端构建工具
-- pnpm - 包管理器
+- 刘慈欣《三体》
