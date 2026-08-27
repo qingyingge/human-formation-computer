@@ -1,35 +1,36 @@
 import * as THREE from 'three';
-import { scene, camera, renderer } from './core/SceneManager.js';
-import { createControls } from './core/Controls.js';
-import { createFormationUnit } from './entities/FormationUnit.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { scene, camera, renderer } from './scene/index.js';
+import { createSoldierArray } from './entities/SoldierFactory.js';
 
-// 创建第一个计算单元
-const unit = createFormationUnit();
-scene.add(unit);
+// 网格辅助线
+const grid = new THREE.GridHelper(30, 30, 0x444444, 0x222222);
+grid.material.opacity = 0.3;
+grid.material.transparent = true;
+scene.add(grid);
 
-// 添加环境光
+// 创建16x16阵列
+const soldierArray = createSoldierArray();
+scene.add(soldierArray);
+
+// 灯光
 const ambientLight = new THREE.AmbientLight(0x404040);
 scene.add(ambientLight);
 
-// 添加平行光
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.position.set(5, 10, 7.5);
+directionalLight.position.set(10, 20, 15);
 scene.add(directionalLight);
 
-// 创建控件
-const controls = createControls(camera, renderer.domElement);
+// 控件
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
 
-// 动画循环
+// 动画
 function animate() {
   requestAnimationFrame(animate);
-
-  // 让单元绕Y轴极慢自转
-  unit.rotation.y += 0.002;
-
-  // 更新控件
+  soldierArray.rotation.y += 0.002;
   controls.update();
-
-  // 渲染场景
   renderer.render(scene, camera);
 }
 
