@@ -35,3 +35,13 @@ function animate() {
 }
 
 animate();
+
+// 截图功能：访问 ?shot 自动下载截图
+if (location.search.includes('shot')) {
+  requestAnimationFrame(() => {
+    const link = document.createElement('a');
+    link.download = 'screenshot.png';
+    link.href = renderer.domElement.toDataURL('image/png');
+    link.click();
+  });
+}
