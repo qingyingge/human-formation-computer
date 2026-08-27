@@ -14,12 +14,17 @@ const soldierArray = createSoldierArray();
 scene.add(soldierArray);
 
 // 灯光
-const ambientLight = new THREE.AmbientLight(0x404040);
+const ambientLight = new THREE.AmbientLight(0x606060);
 scene.add(ambientLight);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(10, 20, 15);
 scene.add(directionalLight);
+
+// 补光（从另一侧照亮，避免侧面全黑）
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+fillLight.position.set(-8, 10, -10);
+scene.add(fillLight);
 
 // 控件
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -35,13 +40,3 @@ function animate() {
 }
 
 animate();
-
-// 截图功能：访问 ?shot 自动下载截图
-if (location.search.includes('shot')) {
-  requestAnimationFrame(() => {
-    const link = document.createElement('a');
-    link.download = 'screenshot.png';
-    link.href = renderer.domElement.toDataURL('image/png');
-    link.click();
-  });
-}

@@ -8,30 +8,100 @@ const TOTAL = GRID_SIZE * GRID_SIZE;
 function createSoldierGeometry() {
   const parts = [];
 
-  // 躯干
-  const torso = new THREE.BoxGeometry(0.4, 0.6, 0.25);
-  torso.translate(0, 0.7, 0);
+  // === 躯干（厚实，像穿铠甲的士兵） ===
+  const torso = new THREE.BoxGeometry(0.48, 0.55, 0.44);
+  torso.translate(0, 0.82, 0);
   parts.push(torso);
 
-  // 左臂
-  const leftArm = new THREE.BoxGeometry(0.12, 0.5, 0.12);
-  leftArm.translate(-0.32, 0.75, 0);
-  parts.push(leftArm);
+  // === 腰部（略窄，过渡） ===
+  const waist = new THREE.BoxGeometry(0.42, 0.12, 0.38);
+  waist.translate(0, 0.5, 0);
+  parts.push(waist);
 
-  // 右臂
-  const rightArm = new THREE.BoxGeometry(0.12, 0.5, 0.12);
-  rightArm.translate(0.32, 0.75, 0);
-  parts.push(rightArm);
+  // === 肩部（略宽于躯干） ===
+  const shoulder = new THREE.BoxGeometry(0.56, 0.10, 0.42);
+  shoulder.translate(0, 1.08, 0);
+  parts.push(shoulder);
 
-  // 左腿
-  const leftLeg = new THREE.BoxGeometry(0.14, 0.5, 0.14);
-  leftLeg.translate(-0.12, 0.15, 0);
-  parts.push(leftLeg);
+  // === 左上臂（手臂在躯干前方偏外侧） ===
+  const leftUpperArm = new THREE.BoxGeometry(0.15, 0.28, 0.18);
+  leftUpperArm.translate(-0.34, 0.98, 0.18);
+  parts.push(leftUpperArm);
 
-  // 右腿
-  const rightLeg = new THREE.BoxGeometry(0.14, 0.5, 0.14);
-  rightLeg.translate(0.12, 0.15, 0);
-  parts.push(rightLeg);
+  // === 左前臂 ===
+  const leftForearm = new THREE.BoxGeometry(0.13, 0.26, 0.16);
+  leftForearm.translate(-0.34, 0.72, 0.18);
+  parts.push(leftForearm);
+
+  // === 左手 ===
+  const leftHand = new THREE.BoxGeometry(0.12, 0.09, 0.13);
+  leftHand.translate(-0.34, 0.56, 0.18);
+  parts.push(leftHand);
+
+  // === 右上臂 ===
+  const rightUpperArm = new THREE.BoxGeometry(0.15, 0.28, 0.18);
+  rightUpperArm.translate(0.34, 0.98, 0.18);
+  parts.push(rightUpperArm);
+
+  // === 右前臂 ===
+  const rightForearm = new THREE.BoxGeometry(0.13, 0.26, 0.16);
+  rightForearm.translate(0.34, 0.72, 0.18);
+  parts.push(rightForearm);
+
+  // === 右手 ===
+  const rightHand = new THREE.BoxGeometry(0.12, 0.09, 0.13);
+  rightHand.translate(0.34, 0.56, 0.18);
+  parts.push(rightHand);
+
+  // === 左大腿（腿部略向后） ===
+  const leftThigh = new THREE.BoxGeometry(0.19, 0.35, 0.24);
+  leftThigh.translate(-0.12, 0.28, -0.10);
+  parts.push(leftThigh);
+
+  // === 左小腿 ===
+  const leftCalf = new THREE.BoxGeometry(0.16, 0.32, 0.20);
+  leftCalf.translate(-0.12, -0.06, -0.10);
+  parts.push(leftCalf);
+
+  // === 左脚（靴子，向前伸出） ===
+  const leftFoot = new THREE.BoxGeometry(0.17, 0.09, 0.30);
+  leftFoot.translate(-0.12, -0.22, 0.10);
+  parts.push(leftFoot);
+
+  // === 右大腿 ===
+  const rightThigh = new THREE.BoxGeometry(0.19, 0.35, 0.24);
+  rightThigh.translate(0.12, 0.28, -0.10);
+  parts.push(rightThigh);
+
+  // === 右小腿 ===
+  const rightCalf = new THREE.BoxGeometry(0.16, 0.32, 0.20);
+  rightCalf.translate(0.12, -0.06, -0.10);
+  parts.push(rightCalf);
+
+  // === 右脚（靴子） ===
+  const rightFoot = new THREE.BoxGeometry(0.17, 0.09, 0.30);
+  rightFoot.translate(0.12, -0.22, 0.10);
+  parts.push(rightFoot);
+
+  // === 头部（球体） ===
+  const head = new THREE.SphereGeometry(0.18, 10, 8);
+  head.translate(0, 1.32, 0);
+  parts.push(head);
+
+  // === 颈部 ===
+  const neck = new THREE.BoxGeometry(0.13, 0.10, 0.16);
+  neck.translate(0, 1.15, 0);
+  parts.push(neck);
+
+  // === 头盔（扁盒，覆盖头部） ===
+  const helmet = new THREE.BoxGeometry(0.42, 0.14, 0.42);
+  helmet.translate(0, 1.44, 0);
+  parts.push(helmet);
+
+  // === 头盔前沿（帽檐） ===
+  const brim = new THREE.BoxGeometry(0.36, 0.03, 0.14);
+  brim.translate(0, 1.38, 0.26);
+  parts.push(brim);
 
   return mergeGeometries(parts);
 }
@@ -39,20 +109,10 @@ function createSoldierGeometry() {
 export function createSoldierArray() {
   const group = new THREE.Group();
 
-  // 身体（合并后的单一几何体）
+  // 身体（合并后的单一几何体：躯干+四肢+头+头盔）
   const bodyGeometry = createSoldierGeometry();
   const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xb87333 });
   const bodies = new THREE.InstancedMesh(bodyGeometry, bodyMaterial, TOTAL);
-
-  // 头部（球体）
-  const headGeometry = new THREE.SphereGeometry(0.18, 10, 10);
-  const headMaterial = new THREE.MeshStandardMaterial({ color: 0xe0ac69 });
-  const heads = new THREE.InstancedMesh(headGeometry, headMaterial, TOTAL);
-
-  // 头盔（扁盒）
-  const helmetGeometry = new THREE.BoxGeometry(0.36, 0.12, 0.36);
-  const helmetMaterial = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
-  const helmets = new THREE.InstancedMesh(helmetGeometry, helmetMaterial, TOTAL);
 
   // 旗帜（独立实例化，便于后续变色）
   const flagGeometry = new THREE.PlaneGeometry(0.4, 0.3);
@@ -76,40 +136,28 @@ export function createSoldierArray() {
       const x = j * SPACING - offset;
       const z = i * SPACING - offset;
 
-      // 身体
+      // 身体（底部对齐地面 y=0）
       dummy.position.set(x, 0, z);
       dummy.updateMatrix();
       bodies.setMatrixAt(idx, dummy.matrix);
 
-      // 头部（躯干顶部1.0 + 半径0.18 = 1.18）
-      dummy.position.set(x, 1.18, z);
-      dummy.updateMatrix();
-      heads.setMatrixAt(idx, dummy.matrix);
-
-      // 头盔（头部顶部1.36 + 半高0.06 = 1.42）
-      dummy.position.set(x, 1.42, z);
-      dummy.updateMatrix();
-      helmets.setMatrixAt(idx, dummy.matrix);
-
-      // 旗杆
-      dummy.position.set(x + 0.25, 1.55, z);
+      // 旗杆（士兵右侧）
+      dummy.position.set(x + 0.30, 1.20, z);
       dummy.updateMatrix();
       poles.setMatrixAt(idx, dummy.matrix);
 
       // 旗帜
-      dummy.position.set(x + 0.25, 1.75, z);
+      dummy.position.set(x + 0.30, 1.50, z);
       dummy.updateMatrix();
       flags.setMatrixAt(idx, dummy.matrix);
     }
   }
 
   bodies.instanceMatrix.needsUpdate = true;
-  heads.instanceMatrix.needsUpdate = true;
-  helmets.instanceMatrix.needsUpdate = true;
   flags.instanceMatrix.needsUpdate = true;
   poles.instanceMatrix.needsUpdate = true;
 
-  group.add(bodies, heads, helmets, flags, poles);
+  group.add(bodies, flags, poles);
 
   return group;
 }
