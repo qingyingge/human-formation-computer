@@ -104,9 +104,13 @@ function createSoldierGeometry() {
 export function createSoldierArray() {
   const group = new THREE.Group();
 
-  // 身体（铠甲+战袍，青铜色）
+  // 身体（铠甲+战袍，秦军黑甲）
   const bodyGeometry = createSoldierGeometry();
-  const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xb87333 });
+  const bodyMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x2a2a2a,
+    metalness: 0.3,
+    roughness: 0.6
+  });
   const bodies = new THREE.InstancedMesh(bodyGeometry, bodyMaterial, TOTAL);
 
   // 旗帜

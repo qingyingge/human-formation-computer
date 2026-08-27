@@ -14,15 +14,15 @@ const soldierArray = createSoldierArray();
 scene.add(soldierArray);
 
 // 灯光
-const ambientLight = new THREE.AmbientLight(0x606060);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
 directionalLight.position.set(10, 20, 15);
 scene.add(directionalLight);
 
-// 补光（从另一侧照亮，避免侧面全黑）
-const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+// 补光
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
 fillLight.position.set(-8, 10, -10);
 scene.add(fillLight);
 
