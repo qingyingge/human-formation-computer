@@ -81,23 +81,23 @@ export function createSoldierArray() {
       dummy.updateMatrix();
       bodies.setMatrixAt(idx, dummy.matrix);
 
-      // 头部
-      dummy.position.set(x, 1.35, z);
+      // 头部（躯干顶部1.0 + 半径0.18 = 1.18）
+      dummy.position.set(x, 1.18, z);
       dummy.updateMatrix();
       heads.setMatrixAt(idx, dummy.matrix);
 
-      // 头盔
-      dummy.position.set(x, 1.5, z);
+      // 头盔（头部顶部1.36 + 半高0.06 = 1.42）
+      dummy.position.set(x, 1.42, z);
       dummy.updateMatrix();
       helmets.setMatrixAt(idx, dummy.matrix);
 
       // 旗杆
-      dummy.position.set(x + 0.25, 1.65, z);
+      dummy.position.set(x + 0.25, 1.55, z);
       dummy.updateMatrix();
       poles.setMatrixAt(idx, dummy.matrix);
 
       // 旗帜
-      dummy.position.set(x + 0.25, 1.85, z);
+      dummy.position.set(x + 0.25, 1.75, z);
       dummy.updateMatrix();
       flags.setMatrixAt(idx, dummy.matrix);
     }
