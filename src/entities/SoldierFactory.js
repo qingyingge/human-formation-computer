@@ -68,14 +68,14 @@ function createSoldierGeometry() {
   leftForearm.translate(-0.32, 0.52, 0.08);
   parts.push(leftForearm);
 
-  // === 右上臂 ===
+  // === 右上臂（举起） ===
   const rightUpperArm = new THREE.BoxGeometry(0.12, 0.24, 0.14);
-  rightUpperArm.translate(0.32, 0.74, 0.08);
+  rightUpperArm.translate(0.32, 1.00, 0.08);
   parts.push(rightUpperArm);
 
-  // === 右前臂 ===
+  // === 右前臂（举起握旗） ===
   const rightForearm = new THREE.BoxGeometry(0.10, 0.22, 0.12);
-  rightForearm.translate(0.32, 0.52, 0.08);
+  rightForearm.translate(0.32, 1.20, 0.08);
   parts.push(rightForearm);
 
   // === 颈部 ===
@@ -139,11 +139,11 @@ export function createSoldierArray() {
       dummy.updateMatrix();
       bodies.setMatrixAt(idx, dummy.matrix);
 
-      dummy.position.set(x + 0.32, 0.77, z + 0.08);
+      dummy.position.set(x + 0.32, 1.35, z + 0.08);
       dummy.updateMatrix();
       poles.setMatrixAt(idx, dummy.matrix);
 
-      dummy.position.set(x + 0.32, 1.02, z + 0.08);
+      dummy.position.set(x + 0.32, 1.60, z + 0.08);
       dummy.updateMatrix();
       flags.setMatrixAt(idx, dummy.matrix);
     }
