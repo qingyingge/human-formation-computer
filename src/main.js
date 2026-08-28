@@ -31,6 +31,17 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
+// HUD 显示
+const hud = document.createElement('div');
+hud.id = 'hud';
+hud.style.cssText = 'position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.7);color:#0f0;font:12px monospace;padding:10px;border-radius:4px;z-index:1000;pointer-events:none;';
+document.body.appendChild(hud);
+
+// FPS 计算
+let frameCount = 0;
+let lastFpsTime = performance.now();
+let fps = 0;
+
 // 暴露到全局，供截图脚本使用
 window.__THREE_SCENE__ = { scene, camera, renderer, controls, soldierArray };
 // 允许外部控制动画时间
@@ -116,6 +127,15 @@ const POLE_UP_Y = 1.35;
 function animate() {
   requestAnimationFrame(animate);
 
+  // FPS 计算
+  frameCount++;
+  const now = performance.now();
+  if (now - lastFpsTime >= 1000) {
+    fps = frameCount;
+    frameCount = 0;
+    lastFpsTime = now;
+  }
+
   // 举旗/放旗动画（周期4秒）
   const t = window.__ANIM_TIME__ !== null ? window.__ANIM_TIME__ : Date.now() * 0.001;
   const phase = (Math.sin(t * Math.PI * 0.5) + 1) * 0.5; // 0~1
@@ -152,6 +172,22 @@ function animate() {
 
   controls.update();
   renderer.render(scene, camera);
+
+  // 更新 HUD
+  const camPos = camera.position;
+  const target = controls.target;
+  const dx = camPos.x - target.x;
+  const dz = camPos.z - target.z;
+  const angle = Math.atan2(dx, dz) * (180 / Math.PI);
+  const dist = Math.sqrt(dx * dx + dz * dz);
+  
+  hud.innerHTML = [
+    `FPS: ${fps}`,
+    `Camera: ${camPos.x.toFixed(1)}, ${camPos.y.toFixed(1)}, ${camPos.z.toFixed(1)}`,
+    `Target: ${target.x.toFixed(1)}, ${target.y.toFixed(1)}, ${target.z.toFixed(1)}`,
+    `Angle: ${angle.toFixed(1)}°`,
+    `Distance: ${dist.toFixed(1)}`
+  ].join('<br>');
 }
 
 animate();
