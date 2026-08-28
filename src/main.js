@@ -9,8 +9,12 @@ grid.material.opacity = 0.3;
 grid.material.transparent = true;
 scene.add(grid);
 
-// 创建16x16阵列
+// 创建1个士兵（调试用）
 const soldierArray = createSoldierArray();
+// 只显示第一个人
+soldierArray.children.forEach(child => {
+  child.count = 1;
+});
 scene.add(soldierArray);
 
 // 灯光
@@ -49,6 +53,33 @@ let fps = 0;
 
 // 暴露到全局，供截图脚本使用
 window.__THREE_SCENE__ = { scene, camera, renderer, controls, soldierArray };
+
+// 打印顶点坐标
+function logVertices() {
+  const { arms, flags, poles, offset } = soldierArray.userData;
+  const SHOULDER_X = 0.32;
+  const SHOULDER_Y = 0.92;
+  const SHOULDER_Z = 0.08;
+  const ARM_LENGTH = 0.46;
+  
+  console.log('=== 士兵顶点信息 ===');
+  console.log(`肩膀: (${SHOULDER_X}, ${SHOULDER_Y}, ${SHOULDER_Z})`);
+  
+  // 放下时的顶点
+  const angleDown = -Math.PI / 2;
+  const handXDown = SHOULDER_X + Math.cos(angleDown) * ARM_LENGTH;
+  const handYDown = SHOULDER_Y + Math.sin(angleDown) * ARM_LENGTH;
+  console.log(`放下-手部: (${handXDown.toFixed(2)}, ${handYDown.toFixed(2)}, ${SHOULDER_Z})`);
+  console.log(`放下-旗杆顶: (${handXDown.toFixed(2)}, ${(handYDown + 0.5).toFixed(2)}, ${SHOULDER_Z})`);
+  
+  // 举起时的顶点
+  const angleUp = Math.PI / 6;
+  const handXUp = SHOULDER_X + Math.cos(angleUp) * ARM_LENGTH;
+  const handYUp = SHOULDER_Y + Math.sin(angleUp) * ARM_LENGTH;
+  console.log(`举起-手部: (${handXUp.toFixed(2)}, ${handYUp.toFixed(2)}, ${SHOULDER_Z})`);
+  console.log(`举起-旗杆顶: (${handXUp.toFixed(2)}, ${(handYUp + 0.5).toFixed(2)}, ${SHOULDER_Z})`);
+}
+logVertices();
 // 允许外部控制动画时间
 window.__ANIM_TIME__ = null;
 
@@ -67,10 +98,11 @@ window.__UPDATE_ANIMATION__ = (time) => {
   // 手臂长度（上臂+前臂）
   const ARM_LENGTH = 0.46;
   
-  // 放下时手臂角度（垂直向下，绕X轴）
-  const ANGLE_DOWN = 0;
-  // 举起时手臂角度（向前举起，绕X轴）
-  const ANGLE_UP = Math.PI / 2;
+  // 手臂绕Z轴旋转（从侧面看在X-Y平面内）
+  // 放下时手臂垂直向下
+  const ANGLE_DOWN = -Math.PI / 2;
+  // 举起时手臂向前上方
+  const ANGLE_UP = Math.PI / 6;
   
   const angle = ANGLE_DOWN + (ANGLE_UP - ANGLE_DOWN) * phase;
   
@@ -80,29 +112,33 @@ window.__UPDATE_ANIMATION__ = (time) => {
       const x = j * SPACING - offset;
       const z = i * SPACING - offset;
 
-      // 手臂位置和旋转（绕X轴向前旋转）
+      // 手臂位置和旋转（绕Z轴旋转）
       const pivotX = x + SHOULDER_X;
       const pivotY = SHOULDER_Y;
       
       dummy.position.set(pivotX, pivotY, z + SHOULDER_Z);
-      dummy.rotation.set(angle, 0, 0);
+      dummy.rotation.set(0, 0, angle);
       dummy.scale.set(1, 1, 1);
       dummy.updateMatrix();
       arms.setMatrixAt(idx, dummy.matrix);
 
-      // 手部位置（手臂末端，绕X轴旋转后的位置）
-      const handY = pivotY - Math.cos(angle) * ARM_LENGTH;
-      const handZ = z + SHOULDER_Z + Math.sin(angle) * ARM_LENGTH;
+      // 手部位置（手臂末端，绕Z轴旋转后的位置）
+      const handX = pivotX + Math.cos(angle) * ARM_LENGTH;
+      const handY = pivotY + Math.sin(angle) * ARM_LENGTH;
+      const handZ = z + SHOULDER_Z;
       
-      // 旗杆垂直向上，从手部延伸
+      // 旗杆从手部延伸，跟随手臂角度
       const poleLength = 0.5;
-      dummy.position.set(pivotX, handY, handZ);
-      dummy.rotation.set(0, 0, 0);
+      dummy.position.set(handX, handY, handZ);
+      dummy.rotation.set(0, 0, angle);
       dummy.updateMatrix();
       poles.setMatrixAt(idx, dummy.matrix);
 
-      // 旗帜在旗杆顶部
-      dummy.position.set(pivotX, handY + poleLength, handZ);
+      // 旗帜在旗杆末端
+      const flagEndX = handX + Math.cos(angle) * poleLength;
+      const flagEndY = handY + Math.sin(angle) * poleLength;
+      
+      dummy.position.set(flagEndX, flagEndY, handZ);
       dummy.rotation.set(0, 0, 0);
       dummy.updateMatrix();
       flags.setMatrixAt(idx, dummy.matrix);
