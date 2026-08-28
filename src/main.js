@@ -32,7 +32,63 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
 // 暴露到全局，供截图脚本使用
-window.__THREE_SCENE__ = { scene, camera, renderer, controls };
+window.__THREE_SCENE__ = { scene, camera, renderer, controls, soldierArray };
+// 允许外部控制动画时间
+window.__ANIM_TIME__ = null;
+
+// 更新动画的函数（供截图脚本调用）
+window.__UPDATE_ANIMATION__ = (time) => {
+  // phase: 0=放下, 1=举起
+  const phase = (Math.sin(time * Math.PI * 0.5) + 1) * 0.5;
+  const dummy = new THREE.Object3D();
+  const { arms, flags, poles, offset } = soldierArray.userData;
+  
+  // 肩膀位置
+  const SHOULDER_X = 0.32;
+  const SHOULDER_Y = 0.92;
+  const SHOULDER_Z = 0.08;
+  
+  // 手臂长度
+  const ARM_LENGTH = 0.46;
+  
+  // 放下时手臂角度（垂直向下）
+  const ANGLE_DOWN = -Math.PI / 2;
+  // 举起时手臂角度（向前上方）
+  const ANGLE_UP = Math.PI / 6;
+  
+  const angle = ANGLE_DOWN + (ANGLE_UP - ANGLE_DOWN) * phase;
+  
+  for (let i = 0; i < GRID_SIZE; i++) {
+    for (let j = 0; j < GRID_SIZE; j++) {
+      const idx = i * GRID_SIZE + j;
+      const x = j * SPACING - offset;
+      const z = i * SPACING - offset;
+
+      // 手臂围绕肩膀旋转
+      const handX = x + SHOULDER_X + Math.cos(angle) * ARM_LENGTH;
+      const handY = SHOULDER_Y + Math.sin(angle) * ARM_LENGTH;
+      
+      dummy.position.set(x + SHOULDER_X, SHOULDER_Y, z + SHOULDER_Z);
+      dummy.rotation.set(0, 0, angle + Math.PI / 2);
+      dummy.updateMatrix();
+      arms.setMatrixAt(idx, dummy.matrix);
+
+      // 旗杆从手部延伸
+      dummy.position.set(handX, handY, z + SHOULDER_Z);
+      dummy.rotation.set(0, 0, 0);
+      dummy.updateMatrix();
+      poles.setMatrixAt(idx, dummy.matrix);
+
+      // 旗帜在旗杆顶部
+      dummy.position.set(handX, handY + 0.25, z + SHOULDER_Z);
+      dummy.updateMatrix();
+      flags.setMatrixAt(idx, dummy.matrix);
+    }
+  }
+  arms.instanceMatrix.needsUpdate = true;
+  poles.instanceMatrix.needsUpdate = true;
+  flags.instanceMatrix.needsUpdate = true;
+};
 
 // 动画相关
 const dummy = new THREE.Object3D();
@@ -55,7 +111,7 @@ function animate() {
   requestAnimationFrame(animate);
 
   // 举旗/放旗动画（周期4秒）
-  const t = Date.now() * 0.001;
+  const t = window.__ANIM_TIME__ !== null ? window.__ANIM_TIME__ : Date.now() * 0.001;
   const phase = (Math.sin(t * Math.PI * 0.5) + 1) * 0.5; // 0~1
 
   for (let i = 0; i < GRID_SIZE; i++) {
