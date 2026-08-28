@@ -31,6 +31,9 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
+// 暴露到全局，供截图脚本使用
+window.__THREE_SCENE__ = { scene, camera, renderer, controls };
+
 // 动画相关
 const dummy = new THREE.Object3D();
 const { arms, flags, poles, offset } = soldierArray.userData;
