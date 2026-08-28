@@ -43,12 +43,12 @@ window.__UPDATE_ANIMATION__ = (time) => {
   const dummy = new THREE.Object3D();
   const { arms, flags, poles, offset } = soldierArray.userData;
   
-  // 肩膀位置
+  // 肩膀位置（世界坐标）
   const SHOULDER_X = 0.32;
   const SHOULDER_Y = 0.92;
   const SHOULDER_Z = 0.08;
   
-  // 手臂长度
+  // 手臂长度（上臂+前臂）
   const ARM_LENGTH = 0.46;
   
   // 放下时手臂角度（垂直向下）
@@ -64,23 +64,29 @@ window.__UPDATE_ANIMATION__ = (time) => {
       const x = j * SPACING - offset;
       const z = i * SPACING - offset;
 
-      // 手臂围绕肩膀旋转
-      const handX = x + SHOULDER_X + Math.cos(angle) * ARM_LENGTH;
-      const handY = SHOULDER_Y + Math.sin(angle) * ARM_LENGTH;
+      // 手臂位置和旋转（围绕肩膀点旋转）
+      const pivotX = x + SHOULDER_X;
+      const pivotY = SHOULDER_Y;
       
-      dummy.position.set(x + SHOULDER_X, SHOULDER_Y, z + SHOULDER_Z);
+      dummy.position.set(pivotX, pivotY, z + SHOULDER_Z);
       dummy.rotation.set(0, 0, angle + Math.PI / 2);
+      dummy.scale.set(1, 1, 1);
       dummy.updateMatrix();
       arms.setMatrixAt(idx, dummy.matrix);
 
-      // 旗杆从手部延伸
+      // 手部位置（手臂末端）
+      const handX = pivotX + Math.cos(angle) * ARM_LENGTH;
+      const handY = pivotY + Math.sin(angle) * ARM_LENGTH;
+      
+      // 旗杆从手部延伸，跟随手臂角度
       dummy.position.set(handX, handY, z + SHOULDER_Z);
-      dummy.rotation.set(0, 0, 0);
+      dummy.rotation.set(0, 0, angle + Math.PI / 2);
       dummy.updateMatrix();
       poles.setMatrixAt(idx, dummy.matrix);
 
       // 旗帜在旗杆顶部
       dummy.position.set(handX, handY + 0.25, z + SHOULDER_Z);
+      dummy.rotation.set(0, 0, 0);
       dummy.updateMatrix();
       flags.setMatrixAt(idx, dummy.matrix);
     }
