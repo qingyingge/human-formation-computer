@@ -14,17 +14,22 @@ const soldierArray = createSoldierArray();
 scene.add(soldierArray);
 
 // 灯光
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
 directionalLight.position.set(10, 20, 15);
 scene.add(directionalLight);
 
-// 补光
-const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
+// 补光（从背面）
+const fillLight = new THREE.DirectionalLight(0xffffff, 1.2);
 fillLight.position.set(-8, 10, -10);
 scene.add(fillLight);
+
+// 后方补光
+const backLight = new THREE.DirectionalLight(0xffffff, 0.8);
+backLight.position.set(0, 5, -15);
+scene.add(backLight);
 
 // 控件
 const controls = new OrbitControls(camera, renderer.domElement);
