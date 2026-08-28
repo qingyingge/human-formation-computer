@@ -67,10 +67,10 @@ window.__UPDATE_ANIMATION__ = (time) => {
   // 手臂长度（上臂+前臂）
   const ARM_LENGTH = 0.46;
   
-  // 放下时手臂角度（垂直向下）
-  const ANGLE_DOWN = -Math.PI / 2;
-  // 举起时手臂角度（向前上方）
-  const ANGLE_UP = Math.PI / 6;
+  // 放下时手臂角度（垂直向下，绕X轴）
+  const ANGLE_DOWN = 0;
+  // 举起时手臂角度（向前举起，绕X轴）
+  const ANGLE_UP = Math.PI / 2;
   
   const angle = ANGLE_DOWN + (ANGLE_UP - ANGLE_DOWN) * phase;
   
@@ -80,28 +80,29 @@ window.__UPDATE_ANIMATION__ = (time) => {
       const x = j * SPACING - offset;
       const z = i * SPACING - offset;
 
-      // 手臂位置和旋转（围绕肩膀点旋转）
+      // 手臂位置和旋转（绕X轴向前旋转）
       const pivotX = x + SHOULDER_X;
       const pivotY = SHOULDER_Y;
       
       dummy.position.set(pivotX, pivotY, z + SHOULDER_Z);
-      dummy.rotation.set(0, 0, angle + Math.PI / 2);
+      dummy.rotation.set(angle, 0, 0);
       dummy.scale.set(1, 1, 1);
       dummy.updateMatrix();
       arms.setMatrixAt(idx, dummy.matrix);
 
-      // 手部位置（手臂末端）
-      const handX = pivotX + Math.cos(angle) * ARM_LENGTH;
-      const handY = pivotY + Math.sin(angle) * ARM_LENGTH;
+      // 手部位置（手臂末端，绕X轴旋转后的位置）
+      const handY = pivotY - Math.cos(angle) * ARM_LENGTH;
+      const handZ = z + SHOULDER_Z + Math.sin(angle) * ARM_LENGTH;
       
-      // 旗杆从手部延伸，跟随手臂角度
-      dummy.position.set(handX, handY, z + SHOULDER_Z);
-      dummy.rotation.set(0, 0, angle + Math.PI / 2);
+      // 旗杆垂直向上，从手部延伸
+      const poleLength = 0.5;
+      dummy.position.set(pivotX, handY, handZ);
+      dummy.rotation.set(0, 0, 0);
       dummy.updateMatrix();
       poles.setMatrixAt(idx, dummy.matrix);
 
       // 旗帜在旗杆顶部
-      dummy.position.set(handX, handY + 0.25, z + SHOULDER_Z);
+      dummy.position.set(pivotX, handY + poleLength, handZ);
       dummy.rotation.set(0, 0, 0);
       dummy.updateMatrix();
       flags.setMatrixAt(idx, dummy.matrix);
