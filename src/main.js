@@ -52,9 +52,80 @@ backLight.position.set(0, 5, -15);
 scene.add(backLight);
 
 // === 控件 ===
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
+const orbitControls = new OrbitControls(camera, renderer.domElement);
+orbitControls.enableDamping = true;
+orbitControls.dampingFactor = 0.05;
+
+// === 自由摄像机 ===
+let freeMode = false;
+let yaw = 0;
+let pitch = -0.4;
+const moveSpeed = 10;
+const keys = {};
+
+function syncFreeCameraFromOrbit() {
+  const dir = new THREE.Vector3().subVectors(camera.position, orbitControls.target).normalize();
+  yaw = Math.atan2(dir.x, dir.z);
+  pitch = Math.asin(dir.y);
+}
+
+function enterFreeMode() {
+  syncFreeCameraFromOrbit();
+  orbitControls.enabled = false;
+  freeMode = true;
+  renderer.domElement.requestPointerLock();
+}
+
+function exitFreeMode() {
+  freeMode = false;
+  orbitControls.enabled = true;
+  document.exitPointerLock();
+}
+
+document.addEventListener('keydown', (e) => {
+  keys[e.code] = true;
+  if (e.code === 'KeyF' && !e.repeat) {
+    if (freeMode) exitFreeMode();
+    else enterFreeMode();
+  }
+});
+document.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+document.addEventListener('pointerlockchange', () => {
+  if (!document.pointerLockElement && freeMode) {
+    freeMode = false;
+    orbitControls.enabled = true;
+  }
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!freeMode || !document.pointerLockElement) return;
+  yaw -= e.movementX * 0.002;
+  pitch -= e.movementY * 0.002;
+  pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, pitch));
+});
+
+function updateFreeCamera(dt) {
+  if (!freeMode) return;
+  const speed = keys['ShiftLeft'] ? moveSpeed * 3 : moveSpeed;
+  const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+  const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+  const up = new THREE.Vector3(0, 1, 0);
+
+  if (keys['KeyW']) camera.position.addScaledVector(forward, speed * dt);
+  if (keys['KeyS']) camera.position.addScaledVector(forward, -speed * dt);
+  if (keys['KeyA']) camera.position.addScaledVector(right, -speed * dt);
+  if (keys['KeyD']) camera.position.addScaledVector(right, speed * dt);
+  if (keys['Space']) camera.position.addScaledVector(up, speed * dt);
+  if (keys['ControlLeft'] || keys['ControlRight']) camera.position.addScaledVector(up, -speed * dt);
+
+  const lookDir = new THREE.Vector3(
+    -Math.sin(yaw) * Math.cos(pitch),
+    Math.sin(pitch),
+    -Math.cos(yaw) * Math.cos(pitch)
+  );
+  camera.lookAt(camera.position.clone().add(lookDir));
+}
 
 // === 网格辅助线 ===
 const gridHelper = new THREE.GridHelper(30, 30, 0x444444, 0x222222);
@@ -74,7 +145,7 @@ let lastFpsTime = performance.now();
 let fps = 0;
 
 // === 全局暴露 ===
-window.__THREE_SCENE__ = { scene, camera, renderer, controls, soldierArray, engine };
+window.__THREE_SCENE__ = { scene, camera, renderer, controls: orbitControls, soldierArray, engine };
 
 // 允许外部控制动画时间（shot.cjs 等工具使用）
 window.__ANIM_TIME__ = null;
@@ -278,10 +349,14 @@ window.__ALU_RESET__ = () => {
 };
 
 // === 主循环 ===
+let lastFrameTime = performance.now();
+
 function animate() {
   requestAnimationFrame(animate);
 
   const nowMs = performance.now();
+  const dt = (nowMs - lastFrameTime) / 1000;
+  lastFrameTime = nowMs;
 
   // FPS
   frameCount++;
@@ -301,7 +376,8 @@ function animate() {
   // 动画
   window.__UPDATE_ANIMATION__(wallMs);
 
-  controls.update();
+  updateFreeCamera(dt);
+  if (!freeMode) orbitControls.update();
   renderer.render(scene, camera);
 
   // HUD
@@ -321,7 +397,7 @@ function animate() {
   }
 
   const camPos = camera.position;
-  const target = controls.target;
+  const target = orbitControls.target;
   const dx = camPos.x - target.x;
   const dz = camPos.z - target.z;
   const angle = Math.atan2(dx, dz) * (180 / Math.PI);
@@ -335,9 +411,11 @@ function animate() {
     getOutputDisplay(),
     ``,
     `Camera: ${camPos.x.toFixed(1)}, ${camPos.y.toFixed(1)}, ${camPos.z.toFixed(1)}`,
-    `Angle: ${angle.toFixed(1)}  Dist: ${dist.toFixed(1)}`,
+    freeMode
+      ? `[FREE] WASD 移动  鼠标转向  Shift 加速  Space/Ctrl 升降`
+      : `Angle: ${angle.toFixed(1)}  Dist: ${dist.toFixed(1)}`,
     ``,
-    `[R] Reset  [Space] Compute  [1-6] Set OP`,
+    `[F] ${freeMode ? '退出自由' : '自由摄像机'}  [R] Reset  [Space] Compute`,
   ].join('\n');
 }
 
