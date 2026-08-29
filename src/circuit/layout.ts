@@ -1,12 +1,14 @@
 /**
  * ALU8 电路节点 → 士兵位置映射
  *
- * 16x16 网格，182 个节点按功能分区：
- *   row 0-1  INPUT 区（19 个输入，最前排可见）
- *   row 2    DECODE 区（操作码解码）
- *   row 3-8  ADDER 区（8 组全加器，每组一行）
- *   row 9-12 LOGIC 区（按位逻辑运算）
- *   row 13-15 MUX + OUTPUT 区（多路选择器 + 输出）
+ * 16x19 网格，182 个节点按功能分区：
+ *   row 0-1   INPUT 区（19 个输入，最前排可见）
+ *   row 2     DECODE 区（操作码解码）
+ *   row 3-8   ADDER 区（6 行 x 8 列）
+ *   row 9-12  LOGIC 区（4 行 x 8 列）
+ *   row 13-17 MUX AND 区（5 行 x 8 列，每行一种 mux_and 门）
+ *   row 18-21 MUX OR 区（4 行 x 8 列，每行一种 mux_or 门 + out）
+ *   row 22    carry_out
  */
 
 export interface SoldierPosition {
@@ -66,24 +68,24 @@ export function buildALU8Layout(): SoldierPosition[] {
     }
   }
 
-  // === ROW 13: MUX AND stage (5 per bit) ===
+  // === ROWS 13-17: MUX AND stage (5 rows, 1 row per mux_and type) ===
   const muxAndNodes = ['mux_and1', 'mux_and2', 'mux_and3', 'mux_and4', 'mux_and5'];
-  for (let bit = 0; bit < 8; bit++) {
-    for (let m = 0; m < muxAndNodes.length; m++) {
-      layout.push(pos(idx++, `${muxAndNodes[m]}[${bit}]`, bit, 13, 'MUX'));
+  for (let row = 0; row < muxAndNodes.length; row++) {
+    for (let bit = 0; bit < 8; bit++) {
+      layout.push(pos(idx++, `${muxAndNodes[row]}[${bit}]`, bit, 13 + row, 'MUX'));
     }
   }
 
-  // === ROW 14: MUX OR stage (4 per bit) ===
+  // === ROWS 18-21: MUX OR stage (4 rows, 1 row per mux_or type) ===
   const muxOrNodes = ['mux_or12', 'mux_or34', 'mux_or1234', 'out'];
-  for (let bit = 0; bit < 8; bit++) {
-    for (let m = 0; m < muxOrNodes.length; m++) {
-      layout.push(pos(idx++, `${muxOrNodes[m]}[${bit}]`, bit, 14, 'MUX'));
+  for (let row = 0; row < muxOrNodes.length; row++) {
+    for (let bit = 0; bit < 8; bit++) {
+      layout.push(pos(idx++, `${muxOrNodes[row]}[${bit}]`, bit, 18 + row, 'MUX'));
     }
   }
 
-  // === ROW 15: carry_out ===
-  layout.push(pos(idx++, 'carry_out', 0, 15, 'OUTPUT'));
+  // === ROW 22: carry_out ===
+  layout.push(pos(idx++, 'carry_out', 0, 22, 'OUTPUT'));
 
   return layout;
 }

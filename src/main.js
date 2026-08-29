@@ -29,6 +29,7 @@ const animState = new Array(TOTAL);
 for (let i = 0; i < TOTAL; i++) {
   animState[i] = {
     currentAngle: 0,
+    startAngle: 0,
     targetAngle: 0,
     prevValue: 0,
     changeStartTime: 0,
@@ -155,15 +156,16 @@ window.__UPDATE_ANIMATION__ = (nowMs) => {
 
     // 检测值变化
     if (output !== state.prevValue) {
+      state.startAngle = state.currentAngle;
       state.changeStartTime = nowMs;
       state.prevValue = output;
       state.targetAngle = targetAngle;
     }
 
-    // 插值过渡
+    // 线性插值过渡
     const elapsed = nowMs - state.changeStartTime;
     const t = Math.min(elapsed / TRANSITION_MS, 1);
-    const angle = state.currentAngle + (targetAngle - state.currentAngle) * t;
+    const angle = state.startAngle + (targetAngle - state.startAngle) * t;
     state.currentAngle = angle;
 
     // 士兵在网格中的位置
@@ -245,7 +247,7 @@ window.__UPDATE_ANIMATION__ = (nowMs) => {
 };
 
 // === 时钟控制 ===
-let lastComputeTime = 0;
+let lastComputeTime = Date.now();
 const CLOCK_INTERVAL_MS = engine.getConfig().clockIntervalMs;
 
 window.__ALU_COMPUTE__ = () => {
@@ -263,6 +265,7 @@ window.__ALU_RESET__ = () => {
   setDefaultInputs();
   for (let i = 0; i < TOTAL; i++) {
     animState[i].currentAngle = 0;
+    animState[i].startAngle = 0;
     animState[i].targetAngle = 0;
     animState[i].prevValue = 0;
     animState[i].changeStartTime = 0;
