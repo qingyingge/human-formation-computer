@@ -9,12 +9,8 @@ grid.material.opacity = 0.3;
 grid.material.transparent = true;
 scene.add(grid);
 
-// 创建1个士兵（调试用）
+// 创建16x16阵列
 const soldierArray = createSoldierArray();
-// 只显示第一个人
-soldierArray.children.forEach(child => {
-  child.count = 1;
-});
 scene.add(soldierArray);
 
 // 灯光
@@ -60,87 +56,87 @@ function logVertices() {
   const SHOULDER_X = 0.32;
   const SHOULDER_Y = 0.92;
   const SHOULDER_Z = 0.08;
-  const ARM_LENGTH = 0.46;
+  const ARM_LENGTH = 0.33;
   
   console.log('=== 士兵顶点信息 ===');
   console.log(`肩膀: (${SHOULDER_X}, ${SHOULDER_Y}, ${SHOULDER_Z})`);
   
-  // 放下时的顶点
-  const angleDown = -Math.PI / 2;
-  const handXDown = SHOULDER_X + Math.cos(angleDown) * ARM_LENGTH;
-  const handYDown = SHOULDER_Y + Math.sin(angleDown) * ARM_LENGTH;
-  console.log(`放下-手部: (${handXDown.toFixed(2)}, ${handYDown.toFixed(2)}, ${SHOULDER_Z})`);
-  console.log(`放下-旗杆顶: (${handXDown.toFixed(2)}, ${(handYDown + 0.5).toFixed(2)}, ${SHOULDER_Z})`);
+  const angleDown = 0;
+  const handXDown = SHOULDER_X;
+  const handYDown = SHOULDER_Y - ARM_LENGTH * Math.cos(angleDown);
+  const handZDown = SHOULDER_Z - ARM_LENGTH * Math.sin(angleDown);
+  console.log(`放下-手部: (${handXDown.toFixed(2)}, ${handYDown.toFixed(2)}, ${handZDown.toFixed(2)})`);
   
-  // 举起时的顶点
-  const angleUp = Math.PI / 6;
-  const handXUp = SHOULDER_X + Math.cos(angleUp) * ARM_LENGTH;
-  const handYUp = SHOULDER_Y + Math.sin(angleUp) * ARM_LENGTH;
-  console.log(`举起-手部: (${handXUp.toFixed(2)}, ${handYUp.toFixed(2)}, ${SHOULDER_Z})`);
-  console.log(`举起-旗杆顶: (${handXUp.toFixed(2)}, ${(handYUp + 0.5).toFixed(2)}, ${SHOULDER_Z})`);
+  const angleUp = -Math.PI;
+  const handXUp = SHOULDER_X;
+  const handYUp = SHOULDER_Y - ARM_LENGTH * Math.cos(angleUp);
+  const handZUp = SHOULDER_Z - ARM_LENGTH * Math.sin(angleUp);
+  console.log(`举起-手部: (${handXUp.toFixed(2)}, ${handYUp.toFixed(2)}, ${handZUp.toFixed(2)})`);
 }
 logVertices();
 // 允许外部控制动画时间
 window.__ANIM_TIME__ = null;
 
-// 更新动画的函数（供截图脚本调用）
 window.__UPDATE_ANIMATION__ = (time) => {
-  // phase: 0=放下, 1=举起
   const phase = (Math.sin(time * Math.PI * 0.5) + 1) * 0.5;
   const dummy = new THREE.Object3D();
-  const { arms, flags, poles, offset } = soldierArray.userData;
-  
-  // 肩膀位置（世界坐标）
+  const { arms, flags, poles, offset, facingAngles } = soldierArray.userData;
+
   const SHOULDER_X = 0.32;
   const SHOULDER_Y = 0.92;
   const SHOULDER_Z = 0.08;
-  
-  // 手臂长度（上臂+前臂）
-  const ARM_LENGTH = 0.46;
-  
-  // 手臂绕Z轴旋转（从侧面看在X-Y平面内）
-  // 放下时手臂垂直向下
-  const ANGLE_DOWN = -Math.PI / 2;
-  // 举起时手臂向前上方
-  const ANGLE_UP = Math.PI / 6;
-  
-  const angle = ANGLE_DOWN + (ANGLE_UP - ANGLE_DOWN) * phase;
-  
+  const ARM_LENGTH = 0.33;
+  const POLE_LENGTH = 0.5;
+
+  const ANGLE_DOWN = 0;
+  const ANGLE_UP = -Math.PI;
+  const armAngle = ANGLE_DOWN + (ANGLE_UP - ANGLE_DOWN) * phase;
+
+  const matSoldier = new THREE.Matrix4();
+  const matLocal = new THREE.Matrix4();
+  const matResult = new THREE.Matrix4();
+  const matRy = new THREE.Matrix4();
+  const matRx = new THREE.Matrix4();
+  const matT = new THREE.Matrix4();
+
+  const cosA = Math.cos(armAngle);
+  const sinA = Math.sin(armAngle);
+
   for (let i = 0; i < GRID_SIZE; i++) {
     for (let j = 0; j < GRID_SIZE; j++) {
       const idx = i * GRID_SIZE + j;
       const x = j * SPACING - offset;
       const z = i * SPACING - offset;
+      const facing = facingAngles[idx] || 0;
 
-      // 手臂位置和旋转（绕Z轴旋转）
-      const pivotX = x + SHOULDER_X;
-      const pivotY = SHOULDER_Y;
-      
-      dummy.position.set(pivotX, pivotY, z + SHOULDER_Z);
-      dummy.rotation.set(0, 0, angle);
-      dummy.scale.set(1, 1, 1);
-      dummy.updateMatrix();
-      arms.setMatrixAt(idx, dummy.matrix);
+      matSoldier.makeTranslation(x, 0, z);
+      matRy.makeRotationY(facing);
+      matSoldier.multiply(matRy);
 
-      // 手部位置（手臂末端，绕Z轴旋转后的位置）
-      const handX = pivotX + Math.cos(angle) * ARM_LENGTH;
-      const handY = pivotY + Math.sin(angle) * ARM_LENGTH;
-      const handZ = z + SHOULDER_Z;
-      
-      // 旗杆从手部延伸，跟随手臂角度
-      const poleLength = 0.5;
-      dummy.position.set(handX, handY, handZ);
-      dummy.rotation.set(0, 0, angle);
-      dummy.updateMatrix();
-      poles.setMatrixAt(idx, dummy.matrix);
+      matT.makeTranslation(SHOULDER_X, SHOULDER_Y, SHOULDER_Z);
+      matRx.makeRotationX(armAngle);
+      matLocal.multiplyMatrices(matT, matRx);
+      matResult.multiplyMatrices(matSoldier, matLocal);
+      arms.setMatrixAt(idx, matResult);
 
-      // 旗帜在旗杆末端
-      const flagEndX = handX + Math.cos(angle) * poleLength;
-      const flagEndY = handY + Math.sin(angle) * poleLength;
-      
-      dummy.position.set(flagEndX, flagEndY, handZ);
-      dummy.rotation.set(0, 0, 0);
-      dummy.updateMatrix();
+      const localHandX = SHOULDER_X;
+      const localHandY = SHOULDER_Y - ARM_LENGTH * cosA;
+      const localHandZ = SHOULDER_Z - ARM_LENGTH * sinA;
+
+      matT.makeTranslation(localHandX, localHandY, localHandZ);
+      matRx.makeRotationX(armAngle);
+      matLocal.multiplyMatrices(matT, matRx);
+      matResult.multiplyMatrices(matSoldier, matLocal);
+      poles.setMatrixAt(idx, matResult);
+
+      const localFlagX = localHandX;
+      const localFlagY = localHandY - POLE_LENGTH * cosA;
+      const localFlagZ = localHandZ - POLE_LENGTH * sinA;
+
+      matT.makeTranslation(localFlagX, localFlagY, localFlagZ);
+      dummy.matrix.identity();
+      dummy.matrix.copy(matSoldier);
+      dummy.matrix.multiply(matT);
       flags.setMatrixAt(idx, dummy.matrix);
     }
   }

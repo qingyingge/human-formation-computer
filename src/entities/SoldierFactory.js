@@ -145,6 +145,7 @@ export function createSoldierArray() {
 
   // 旗杆
   const poleGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.5, 6);
+  poleGeometry.translate(0, -0.25, 0);
   const poleMaterial = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
   const poles = new THREE.InstancedMesh(poleGeometry, poleMaterial, TOTAL);
 
@@ -191,6 +192,10 @@ export function createSoldierArray() {
   group.userData.arms = arms;
   group.userData.flags = flags;
   group.userData.poles = poles;
+  
+  // 存储每个士兵的朝向角度（绕Y轴旋转，单位：弧度）
+  // 默认所有士兵面向正前方（0度）
+  group.userData.facingAngles = new Float32Array(TOTAL);
 
   return group;
 }
