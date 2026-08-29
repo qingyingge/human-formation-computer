@@ -213,7 +213,7 @@ const ARM_LENGTH = 0.33;
 const POLE_LENGTH = 0.5;
 const ANGLE_DOWN = 0;
 const ANGLE_UP = -Math.PI;
-const TRANSITION_MS = 100; // propagationDelayMs
+const BASE_DELAY_MS = engine.getConfig().propagationDelayMs; // 后端定义的基准延迟
 
 // === 动画速度 ===
 let animSpeed = 1;
@@ -251,7 +251,7 @@ window.__UPDATE_ANIMATION__ = (nowMs) => {
 
     // 线性插值过渡
     const elapsed = nowMs - state.changeStartTime;
-    const t = Math.min(elapsed / TRANSITION_MS, 1);
+    const t = Math.min(elapsed / (BASE_DELAY_MS / animSpeed), 1);
     const angle = state.startAngle + (targetAngle - state.startAngle) * t;
     state.currentAngle = angle;
 
