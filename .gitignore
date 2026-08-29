@@ -3,5 +3,5 @@ dist/
 .vscode/
 *.log
 .DS_Store
-shot.cjs
 screenshot.png
+screenshots/
