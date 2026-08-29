@@ -1,97 +1,143 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { scene, camera, renderer } from './scene/index.js';
-import { createSoldierArray, TOTAL, GRID_SIZE, SPACING } from './entities/SoldierFactory.js';
+import { createSoldierArray, SPACING } from './entities/SoldierFactory.js';
+import { HumanComputerEngine } from './engine/index.js';
+import { createALU8 } from './circuit/alu8.js';
+import { buildALU8Layout } from './circuit/layout.js';
 
-// 网格辅助线
-const grid = new THREE.GridHelper(30, 30, 0x444444, 0x222222);
-grid.material.opacity = 0.3;
-grid.material.transparent = true;
-scene.add(grid);
+// === 电路 & 引擎 ===
+const circuit = createALU8();
+const engine = new HumanComputerEngine(circuit, {
+  propagationDelayMs: 100,
+  clockIntervalMs: 2000,
+});
 
-// 创建16x16阵列
-const soldierArray = createSoldierArray();
+// === 布局 & 士兵 ===
+const layout = buildALU8Layout();
+const soldierArray = createSoldierArray(layout);
 scene.add(soldierArray);
 
-// 灯光
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-scene.add(ambientLight);
+const {
+  arms, leftArms, whiteFlags, blackFlags,
+  poles, leftPoles, offsetX, offsetZ,
+  nodeIds, TOTAL, GRID_COLS, GRID_ROWS,
+} = soldierArray.userData;
+
+// === 动画状态 ===
+const animState = new Array(TOTAL);
+for (let i = 0; i < TOTAL; i++) {
+  animState[i] = {
+    currentAngle: 0,
+    targetAngle: 0,
+    prevValue: 0,
+    changeStartTime: 0,
+  };
+}
+
+// === 灑光 ===
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
 directionalLight.position.set(10, 20, 15);
 scene.add(directionalLight);
 
-// 补光（从背面）
 const fillLight = new THREE.DirectionalLight(0xffffff, 1.2);
 fillLight.position.set(-8, 10, -10);
 scene.add(fillLight);
 
-// 后方补光
 const backLight = new THREE.DirectionalLight(0xffffff, 0.8);
 backLight.position.set(0, 5, -15);
 scene.add(backLight);
 
-// 控件
+// === 控件 ===
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
-// HUD 显示
+// === 网格辅助线 ===
+const gridHelper = new THREE.GridHelper(30, 30, 0x444444, 0x222222);
+gridHelper.material.opacity = 0.3;
+gridHelper.material.transparent = true;
+scene.add(gridHelper);
+
+// === HUD ===
 const hud = document.createElement('div');
 hud.id = 'hud';
-hud.style.cssText = 'position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.7);color:#0f0;font:12px monospace;padding:10px;border-radius:4px;z-index:1000;pointer-events:none;';
+hud.style.cssText = 'position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.8);color:#0f0;font:12px monospace;padding:10px;border-radius:4px;z-index:1000;pointer-events:none;white-space:pre;';
 document.body.appendChild(hud);
 
-// FPS 计算
+// === FPS ===
 let frameCount = 0;
 let lastFpsTime = performance.now();
 let fps = 0;
 
-// 暴露到全局，供截图脚本使用
-window.__THREE_SCENE__ = { scene, camera, renderer, controls, soldierArray };
+// === 全局暴露 ===
+window.__THREE_SCENE__ = { scene, camera, renderer, controls, soldierArray, engine };
 
-// 打印顶点坐标
-function logVertices() {
-  const { arms, flags, poles, offset } = soldierArray.userData;
-  const SHOULDER_X = 0.32;
-  const SHOULDER_Y = 0.92;
-  const SHOULDER_Z = 0.08;
-  const ARM_LENGTH = 0.33;
-  
-  console.log('=== 士兵顶点信息 ===');
-  console.log(`肩膀: (${SHOULDER_X}, ${SHOULDER_Y}, ${SHOULDER_Z})`);
-  
-  const angleDown = 0;
-  const handXDown = SHOULDER_X;
-  const handYDown = SHOULDER_Y - ARM_LENGTH * Math.cos(angleDown);
-  const handZDown = SHOULDER_Z - ARM_LENGTH * Math.sin(angleDown);
-  console.log(`放下-手部: (${handXDown.toFixed(2)}, ${handYDown.toFixed(2)}, ${handZDown.toFixed(2)})`);
-  
-  const angleUp = -Math.PI;
-  const handXUp = SHOULDER_X;
-  const handYUp = SHOULDER_Y - ARM_LENGTH * Math.cos(angleUp);
-  const handZUp = SHOULDER_Z - ARM_LENGTH * Math.sin(angleUp);
-  console.log(`举起-手部: (${handXUp.toFixed(2)}, ${handYUp.toFixed(2)}, ${handZUp.toFixed(2)})`);
+// === 默认输入：3 + 5 = 8 (ADD) ===
+function setDefaultInputs() {
+  // a = 3 (00000011)
+  for (let i = 0; i < 8; i++) {
+    engine.setInput(`a[${i}]`, ((3 >> i) & 1));
+  }
+  // b = 5 (00000101)
+  for (let i = 0; i < 8; i++) {
+    engine.setInput(`b[${i}]`, ((5 >> i) & 1));
+  }
+  // op = 0 (ADD)
+  engine.setInput('op[0]', 0);
+  engine.setInput('op[1]', 0);
+  engine.setInput('op[2]', 0);
 }
-logVertices();
-// 允许外部控制动画时间
-window.__ANIM_TIME__ = null;
 
-window.__UPDATE_ANIMATION__ = (time) => {
-  const phase = (Math.sin(time * Math.PI * 0.5) + 1) * 0.5;
+setDefaultInputs();
+
+// === 首次计算 ===
+engine.compute(0);
+engine.tick(0);
+
+// === 读取输入显示 ===
+function getInputsDisplay() {
+  let a = 0, b = 0;
+  for (let i = 0; i < 8; i++) {
+    a |= (engine.query(`a[${i}]`) << i);
+    b |= (engine.query(`b[${i}]`) << i);
+  }
+  const op0 = engine.query('op[0]');
+  const op1 = engine.query('op[1]');
+  const op2 = engine.query('op[2]');
+  const op = op0 | (op1 << 1) | (op2 << 2);
+  const opNames = ['ADD', 'SUB', 'AND', 'OR', 'XOR', 'NOT'];
+  return `a=${a.toString(2).padStart(8, '0')} (${a})  b=${b.toString(2).padStart(8, '0')} (${b})  op=${opNames[op] || op}`;
+}
+
+function getOutputDisplay() {
+  let out = 0;
+  for (let i = 0; i < 8; i++) {
+    out |= (engine.query(`out[${i}]`) << i);
+  }
+  const carry = engine.query('carry_out');
+  return `out=${out.toString(2).padStart(8, '0')} (${out})  carry=${carry}`;
+}
+
+// === 动画常量 ===
+const SHOULDER_RIGHT_X = 0.32;
+const SHOULDER_LEFT_X = -0.32;
+const SHOULDER_Y = 0.92;
+const SHOULDER_Z = 0.08;
+const ARM_LENGTH = 0.33;
+const POLE_LENGTH = 0.5;
+const ANGLE_DOWN = 0;
+const ANGLE_UP = -Math.PI;
+const TRANSITION_MS = 100; // propagationDelayMs
+
+// === 动画更新 ===
+window.__UPDATE_ANIMATION__ = (nowMs) => {
+  // 推进引擎时钟
+  engine.tick(nowMs);
+
   const dummy = new THREE.Object3D();
-  const { arms, flags, poles, offset, facingAngles } = soldierArray.userData;
-
-  const SHOULDER_X = 0.32;
-  const SHOULDER_Y = 0.92;
-  const SHOULDER_Z = 0.08;
-  const ARM_LENGTH = 0.33;
-  const POLE_LENGTH = 0.5;
-
-  const ANGLE_DOWN = 0;
-  const ANGLE_UP = -Math.PI;
-  const armAngle = ANGLE_DOWN + (ANGLE_UP - ANGLE_DOWN) * phase;
-
   const matSoldier = new THREE.Matrix4();
   const matLocal = new THREE.Matrix4();
   const matResult = new THREE.Matrix4();
@@ -99,88 +145,194 @@ window.__UPDATE_ANIMATION__ = (time) => {
   const matRx = new THREE.Matrix4();
   const matT = new THREE.Matrix4();
 
-  const cosA = Math.cos(armAngle);
-  const sinA = Math.sin(armAngle);
+  for (let idx = 0; idx < TOTAL; idx++) {
+    const nodeId = nodeIds[idx];
+    if (!nodeId) continue;
 
-  for (let i = 0; i < GRID_SIZE; i++) {
-    for (let j = 0; j < GRID_SIZE; j++) {
-      const idx = i * GRID_SIZE + j;
-      const x = j * SPACING - offset;
-      const z = i * SPACING - offset;
-      const facing = facingAngles[idx] || 0;
+    const output = engine.query(nodeId);
+    const state = animState[idx];
+    const targetAngle = output === 1 ? ANGLE_UP : ANGLE_DOWN;
 
-      matSoldier.makeTranslation(x, 0, z);
-      matRy.makeRotationY(facing);
-      matSoldier.multiply(matRy);
-
-      matT.makeTranslation(SHOULDER_X, SHOULDER_Y, SHOULDER_Z);
-      matRx.makeRotationX(armAngle);
-      matLocal.multiplyMatrices(matT, matRx);
-      matResult.multiplyMatrices(matSoldier, matLocal);
-      arms.setMatrixAt(idx, matResult);
-
-      const localHandX = SHOULDER_X;
-      const localHandY = SHOULDER_Y - ARM_LENGTH * cosA;
-      const localHandZ = SHOULDER_Z - ARM_LENGTH * sinA;
-
-      matT.makeTranslation(localHandX, localHandY, localHandZ);
-      matRx.makeRotationX(armAngle);
-      matLocal.multiplyMatrices(matT, matRx);
-      matResult.multiplyMatrices(matSoldier, matLocal);
-      poles.setMatrixAt(idx, matResult);
-
-      const localFlagX = localHandX;
-      const localFlagY = localHandY - POLE_LENGTH * cosA;
-      const localFlagZ = localHandZ - POLE_LENGTH * sinA;
-
-      matT.makeTranslation(localFlagX, localFlagY, localFlagZ);
-      dummy.matrix.identity();
-      dummy.matrix.copy(matSoldier);
-      dummy.matrix.multiply(matT);
-      flags.setMatrixAt(idx, dummy.matrix);
+    // 检测值变化
+    if (output !== state.prevValue) {
+      state.changeStartTime = nowMs;
+      state.prevValue = output;
+      state.targetAngle = targetAngle;
     }
+
+    // 插值过渡
+    const elapsed = nowMs - state.changeStartTime;
+    const t = Math.min(elapsed / TRANSITION_MS, 1);
+    const angle = state.currentAngle + (targetAngle - state.currentAngle) * t;
+    state.currentAngle = angle;
+
+    // 士兵在网格中的位置
+    const item = layout[idx];
+    const x = item.gridX * SPACING - offsetX;
+    const z = item.gridZ * SPACING - offsetZ;
+    const facing = soldierArray.userData.facingAngles[idx] || 0;
+
+    matSoldier.makeTranslation(x, 0, z);
+    matRy.makeRotationY(facing);
+    matSoldier.multiply(matRy);
+
+    // 右臂
+    const cosR = Math.cos(angle);
+    const sinR = Math.sin(angle);
+    matT.makeTranslation(SHOULDER_RIGHT_X, SHOULDER_Y, SHOULDER_Z);
+    matRx.makeRotationX(angle);
+    matLocal.multiplyMatrices(matT, matRx);
+    matResult.multiplyMatrices(matSoldier, matLocal);
+    arms.setMatrixAt(idx, matResult);
+
+    // 右旗杆
+    const rightHandX = SHOULDER_RIGHT_X;
+    const rightHandY = SHOULDER_Y - ARM_LENGTH * cosR;
+    const rightHandZ = SHOULDER_Z - ARM_LENGTH * sinR;
+    matT.makeTranslation(rightHandX, rightHandY, rightHandZ);
+    matRx.makeRotationX(angle);
+    matLocal.multiplyMatrices(matT, matRx);
+    matResult.multiplyMatrices(matSoldier, matLocal);
+    poles.setMatrixAt(idx, matResult);
+
+    // 白旗
+    const rightFlagX = rightHandX;
+    const rightFlagY = rightHandY - POLE_LENGTH * cosR;
+    const rightFlagZ = rightHandZ - POLE_LENGTH * sinR;
+    matT.makeTranslation(rightFlagX, rightFlagY, rightFlagZ);
+    dummy.matrix.identity();
+    dummy.matrix.copy(matSoldier);
+    dummy.matrix.multiply(matT);
+    whiteFlags.setMatrixAt(idx, dummy.matrix);
+
+    // 左臂（与右臂反相）
+    const leftAngle = -angle;
+    const cosL = Math.cos(leftAngle);
+    const sinL = Math.sin(leftAngle);
+    matT.makeTranslation(SHOULDER_LEFT_X, SHOULDER_Y, SHOULDER_Z);
+    matRx.makeRotationX(leftAngle);
+    matLocal.multiplyMatrices(matT, matRx);
+    matResult.multiplyMatrices(matSoldier, matLocal);
+    leftArms.setMatrixAt(idx, matResult);
+
+    // 左旗杆
+    const leftHandX = SHOULDER_LEFT_X;
+    const leftHandY = SHOULDER_Y - ARM_LENGTH * cosL;
+    const leftHandZ = SHOULDER_Z - ARM_LENGTH * sinL;
+    matT.makeTranslation(leftHandX, leftHandY, leftHandZ);
+    matRx.makeRotationX(leftAngle);
+    matLocal.multiplyMatrices(matT, matRx);
+    matResult.multiplyMatrices(matSoldier, matLocal);
+    leftPoles.setMatrixAt(idx, matResult);
+
+    // 黑旗
+    const leftFlagX = leftHandX;
+    const leftFlagY = leftHandY - POLE_LENGTH * cosL;
+    const leftFlagZ = leftHandZ - POLE_LENGTH * sinL;
+    matT.makeTranslation(leftFlagX, leftFlagY, leftFlagZ);
+    dummy.matrix.identity();
+    dummy.matrix.copy(matSoldier);
+    dummy.matrix.multiply(matT);
+    blackFlags.setMatrixAt(idx, dummy.matrix);
   }
+
   arms.instanceMatrix.needsUpdate = true;
+  leftArms.instanceMatrix.needsUpdate = true;
   poles.instanceMatrix.needsUpdate = true;
-  flags.instanceMatrix.needsUpdate = true;
+  leftPoles.instanceMatrix.needsUpdate = true;
+  whiteFlags.instanceMatrix.needsUpdate = true;
+  blackFlags.instanceMatrix.needsUpdate = true;
 };
 
-// 动画相关（已在 __UPDATE_ANIMATION__ 中处理）
+// === 时钟控制 ===
+let lastComputeTime = 0;
+const CLOCK_INTERVAL_MS = engine.getConfig().clockIntervalMs;
 
+window.__ALU_COMPUTE__ = () => {
+  const now = Date.now();
+  engine.compute(now);
+  lastComputeTime = now;
+};
+
+window.__ALU_SET_INPUT__ = (nodeId, value) => {
+  engine.setInput(nodeId, value);
+};
+
+window.__ALU_RESET__ = () => {
+  engine.reset();
+  setDefaultInputs();
+  for (let i = 0; i < TOTAL; i++) {
+    animState[i].currentAngle = 0;
+    animState[i].targetAngle = 0;
+    animState[i].prevValue = 0;
+    animState[i].changeStartTime = 0;
+  }
+  engine.compute(0);
+  engine.tick(0);
+};
+
+// === 主循环 ===
 function animate() {
   requestAnimationFrame(animate);
 
-  // FPS 计算
+  const nowMs = performance.now();
+
+  // FPS
   frameCount++;
-  const now = performance.now();
-  if (now - lastFpsTime >= 1000) {
+  if (nowMs - lastFpsTime >= 1000) {
     fps = frameCount;
     frameCount = 0;
-    lastFpsTime = now;
+    lastFpsTime = nowMs;
   }
 
-  // 使用旋转动画
-  const t = window.__ANIM_TIME__ !== null ? window.__ANIM_TIME__ : Date.now() * 0.001;
-  window.__UPDATE_ANIMATION__(t);
+  // 自动触发 compute（每个时钟周期一次）
+  const wallMs = Date.now();
+  if (wallMs - lastComputeTime >= CLOCK_INTERVAL_MS) {
+    engine.compute(wallMs);
+    lastComputeTime = wallMs;
+  }
+
+  // 动画
+  window.__UPDATE_ANIMATION__(wallMs);
 
   controls.update();
   renderer.render(scene, camera);
 
-  // 更新 HUD
+  // HUD
+  const layers = engine.getLayers();
+  const pending = engine.getPendingChanges().length;
+  const totalLayers = layers.length;
+  // 找到当前最深的已激活层
+  let activeLayer = 0;
+  for (let i = 0; i < totalLayers; i++) {
+    const layerNodes = layers[i];
+    for (const nid of layerNodes) {
+      if (engine.query(nid) === 1) {
+        activeLayer = i + 1;
+        break;
+      }
+    }
+  }
+
   const camPos = camera.position;
   const target = controls.target;
   const dx = camPos.x - target.x;
   const dz = camPos.z - target.z;
   const angle = Math.atan2(dx, dz) * (180 / Math.PI);
   const dist = Math.sqrt(dx * dx + dz * dz);
-  
+
   hud.innerHTML = [
-    `FPS: ${fps}`,
+    `FPS: ${fps}  Nodes: ${TOTAL}  Layers: ${totalLayers}`,
+    `ALU8 | Pending: ${pending}`,
+    ``,
+    getInputsDisplay(),
+    getOutputDisplay(),
+    ``,
     `Camera: ${camPos.x.toFixed(1)}, ${camPos.y.toFixed(1)}, ${camPos.z.toFixed(1)}`,
-    `Target: ${target.x.toFixed(1)}, ${target.y.toFixed(1)}, ${target.z.toFixed(1)}`,
-    `Angle: ${angle.toFixed(1)}°`,
-    `Distance: ${dist.toFixed(1)}`
-  ].join('<br>');
+    `Angle: ${angle.toFixed(1)}  Dist: ${dist.toFixed(1)}`,
+    ``,
+    `[R] Reset  [Space] Compute  [1-6] Set OP`,
+  ].join('\n');
 }
 
 animate();
