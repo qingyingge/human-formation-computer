@@ -22,7 +22,6 @@ export class HumanComputerEngine {
   private config: EngineConfig;
 
   private currentStates: Map<string, 0 | 1>;
-  private pendingStates: Map<string, 0 | 1>;
   private pendingQueue: PendingUpdate[];
 
   private lastTickTimeMs: number = 0;
@@ -47,11 +46,9 @@ export class HumanComputerEngine {
     };
 
     this.currentStates = new Map();
-    this.pendingStates = new Map();
     this.pendingQueue = [];
     for (const node of circuit.nodes) {
       this.currentStates.set(node.id, 0);
-      this.pendingStates.set(node.id, 0);
     }
   }
 
@@ -60,7 +57,6 @@ export class HumanComputerEngine {
     if (!node) throw new Error(`节点不存在: ${nodeId}`);
     if (node.gate !== 'INPUT') throw new Error(`节点 "${nodeId}" 不是INPUT类型`);
     this.currentStates.set(nodeId, value);
-    this.pendingStates.set(nodeId, value);
   }
 
   setInputs(inputs: Record<string, 0 | 1>): void {
@@ -89,8 +85,7 @@ export class HumanComputerEngine {
 
         snapshot.set(nodeId, output);
 
-        if (this.pendingStates.get(nodeId) !== output) {
-          this.pendingStates.set(nodeId, output);
+        if (this.currentStates.get(nodeId) !== output) {
           this.pendingQueue.push({
             nodeId,
             value: output,
@@ -116,8 +111,7 @@ export class HumanComputerEngine {
       const writeData = snapshot.get(mem.writeData) ?? 0;
 
       if (writeEnables.every(x => x === 1)) {
-        if (this.pendingStates.get(mem.id) !== writeData) {
-          this.pendingStates.set(mem.id, writeData);
+        if (this.currentStates.get(mem.id) !== writeData) {
           this.pendingQueue.push({
             nodeId: mem.id,
             value: writeData,
@@ -209,7 +203,6 @@ export class HumanComputerEngine {
   reset(): void {
     for (const [id] of this.currentStates) {
       this.currentStates.set(id, 0);
-      this.pendingStates.set(id, 0);
     }
     this.pendingQueue = [];
   }

@@ -88,6 +88,14 @@ document.addEventListener('keydown', (e) => {
     if (freeMode) exitFreeMode();
     else enterFreeMode();
   }
+  if ((e.code === 'BracketRight' || e.code === 'Equal') && !e.repeat) {
+    speedIdx = Math.min(speedIdx + 1, SPEED_LEVELS.length - 1);
+    animSpeed = SPEED_LEVELS[speedIdx];
+  }
+  if ((e.code === 'BracketLeft' || e.code === 'Minus') && !e.repeat) {
+    speedIdx = Math.max(speedIdx - 1, 0);
+    animSpeed = SPEED_LEVELS[speedIdx];
+  }
 });
 document.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
@@ -206,6 +214,11 @@ const POLE_LENGTH = 0.5;
 const ANGLE_DOWN = 0;
 const ANGLE_UP = -Math.PI;
 const TRANSITION_MS = 100; // propagationDelayMs
+
+// === 动画速度 ===
+let animSpeed = 1;
+const SPEED_LEVELS = [0.25, 0.5, 1, 2, 4, 8];
+let speedIdx = 2; // 默认 1x
 
 // === 动画更新 ===
 window.__UPDATE_ANIMATION__ = (nowMs) => {
@@ -366,8 +379,9 @@ function animate() {
     lastFpsTime = nowMs;
   }
 
-  // 自动触发 compute（每个时钟周期一次）
-  const wallMs = window.__ANIM_TIME__ !== null ? window.__ANIM_TIME__ : Date.now();
+  // 自动触发 compute（每个时钟周期一次，速度可调）
+  const realMs = window.__ANIM_TIME__ !== null ? window.__ANIM_TIME__ : Date.now();
+  const wallMs = realMs * animSpeed;
   if (wallMs - lastComputeTime >= CLOCK_INTERVAL_MS) {
     engine.compute(wallMs);
     lastComputeTime = wallMs;
@@ -404,7 +418,7 @@ function animate() {
   const dist = Math.sqrt(dx * dx + dz * dz);
 
   hud.innerHTML = [
-    `FPS: ${fps}  Nodes: ${TOTAL}  Layers: ${totalLayers}`,
+    `FPS: ${fps}  Nodes: ${TOTAL}  Layers: ${totalLayers}  Speed: ${animSpeed}x`,
     `ALU8 | Pending: ${pending}`,
     ``,
     getInputsDisplay(),
@@ -415,7 +429,7 @@ function animate() {
       ? `[FREE] WASD 移动  鼠标转向  Shift 加速  Space/Ctrl 升降`
       : `Angle: ${angle.toFixed(1)}  Dist: ${dist.toFixed(1)}`,
     ``,
-    `[F] ${freeMode ? '退出自由' : '自由摄像机'}  [R] Reset  [Space] Compute`,
+    `[F] ${freeMode ? '退出自由' : '自由摄像机'}  [/] 速度  [R] Reset  [Space] Compute`,
   ].join('\n');
 }
 
