@@ -1,0 +1,20 @@
+{
+  "name": "human-formation-computer",
+  "version": "1.0.0",
+  "description": "人列计算机引擎 - 同步时序逻辑电路模拟器",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "ts-node examples/test.ts",
+    "example:alu": "ts-node examples/alu8.ts",
+    "example:ram": "ts-node examples/ram256.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0",
+    "@types/node": "^20.0.0"
+  }
+}
