@@ -76,6 +76,9 @@ let fps = 0;
 // === 全局暴露 ===
 window.__THREE_SCENE__ = { scene, camera, renderer, controls, soldierArray, engine };
 
+// 允许外部控制动画时间（shot.cjs 等工具使用）
+window.__ANIM_TIME__ = null;
+
 // === 默认输入：3 + 5 = 8 (ADD) ===
 function setDefaultInputs() {
   // a = 3 (00000011)
@@ -289,7 +292,7 @@ function animate() {
   }
 
   // 自动触发 compute（每个时钟周期一次）
-  const wallMs = Date.now();
+  const wallMs = window.__ANIM_TIME__ !== null ? window.__ANIM_TIME__ : Date.now();
   if (wallMs - lastComputeTime >= CLOCK_INTERVAL_MS) {
     engine.compute(wallMs);
     lastComputeTime = wallMs;
